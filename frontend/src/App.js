@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
-import { CarProvider } from './context/CarContext';
 import Layout from './components/Layout';
 import Home from './pages/Home';
 import Inventory from './pages/Inventory';
@@ -38,6 +37,7 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    // Check if user is already logged in
     const token = localStorage.getItem('authToken');
     setIsLoggedIn(!!token);
   }, []);
@@ -54,21 +54,19 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <CarProvider>
-        <Router>
-          <Layout isLoggedIn={isLoggedIn} onLogout={handleLogout}>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/car/:id" element={<CarDetails />} />
-              <Route path="/add-car" element={<AddCar />} />
-              <Route path="/edit-car/:id" element={<EditCar />} />
-              <Route path="/login" element={<Login onLogin={handleLogin} />} />
-              <Route path="/sell-car" element={<SellCar />} />
-            </Routes>
-          </Layout>
-        </Router>
-      </CarProvider>
+      <Router>
+        <Layout isLoggedIn={isLoggedIn} onLogout={handleLogout}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/inventory" element={<Inventory />} />
+            <Route path="/car/:id" element={<CarDetails />} />
+            <Route path="/add-car" element={<AddCar />} />
+            <Route path="/edit-car/:id" element={<EditCar />} />
+            <Route path="/login" element={<Login onLogin={handleLogin} />} />
+            <Route path="/sell-car" element={<SellCar />} />
+          </Routes>
+        </Layout>
+      </Router>
     </ThemeProvider>
   );
 }

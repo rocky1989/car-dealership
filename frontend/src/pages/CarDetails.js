@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Container,
@@ -11,22 +11,43 @@ import {
     CircularProgress,
     Alert
 } from '@mui/material';
-import { useCarContext } from '../context/CarContext';
+import CarService from '../services/CarService';
 
 const CarDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { cars, loading, error } = useCarContext();
     const [car, setCar] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        if (cars && cars.length > 0) {
-            const foundCar = cars.find(c => c.id === parseInt(id));
-            if (foundCar) {
-                setCar(foundCar);
+        const fetchCarDetails = async () => {
+            try {
+                setLoading(true);
+                const data = await CarService.getCarById(id);
+                setCar(data);
+            } catch (err) {
+                setError('Failed to fetch car details');
+                console.error('Error fetching car details:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchCarDetails();
+    }, [id]);
+
+    const handleDelete = async () => {
+        if (window.confirm('Are you sure you want to delete this car?')) {
+            try {
+                await CarService.deleteCar(id);
+                navigate('/inventory');
+            } catch (err) {
+                setError('Failed to delete car');
+                console.error('Error deleting car:', err);
             }
         }
-    }, [cars, id]);
+    };
 
     if (loading) {
         return (
@@ -55,6 +76,8 @@ const CarDetails = () => {
             </Container>
         );
     }
+
+    const isLoggedIn = localStorage.getItem('authToken') !== null;
 
     return (
         <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
@@ -97,17 +120,28 @@ const CarDetails = () => {
                         Status: {car.status}
                     </Typography>
                     <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            onClick={() => navigate(`/cars/${id}/edit`)}
-                        >
-                            Edit
-                        </Button>
+                        {isLoggedIn && (
+                            <>
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    onClick={() => navigate(`/edit-car/${id}`)}
+                                >
+                                    Edit
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    color="error"
+                                    onClick={handleDelete}
+                                >
+                                    Delete
+                                </Button>
+                            </>
+                        )}
                         <Button
                             variant="outlined"
                             color="primary"
-                            onClick={() => navigate('/')}
+                            onClick={() => navigate('/inventory')}
                         >
                             Back to List
                         </Button>

@@ -12,13 +12,11 @@ import {
   CircularProgress,
   Alert
 } from '@mui/material';
-import { useCarContext } from '../context/CarContext';
 import CarService from '../services/CarService';
 
 const EditCar = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { cars, loading, error, updateCars } = useCarContext();
   const [formData, setFormData] = useState({
     make: '',
     model: '',
@@ -34,29 +32,38 @@ const EditCar = () => {
     vin: '',
     imageUrl: '',
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (cars && cars.length > 0) {
-      const car = cars.find(c => c.id === parseInt(id));
-      if (car) {
+    const fetchCarDetails = async () => {
+      try {
+        const car = await CarService.getCarById(id);
         setFormData({
           make: car.make,
           model: car.model,
           manufacturedYear: car.manufacturedYear.toString(),
           price: car.price.toString(),
           mileage: car.mileage.toString(),
-          description: car.description,
-          color: car.color,
-          transmission: car.transmission,
-          fuelType: car.fuelType,
-          carCondition: car.carCondition,
-          status: car.status,
-          vin: car.vin,
+          description: car.description || '',
+          color: car.color || '',
+          transmission: car.transmission || '',
+          fuelType: car.fuelType || '',
+          carCondition: car.carCondition || '',
+          status: car.status || 'AVAILABLE',
+          vin: car.vin || '',
           imageUrl: car.imageUrl || '',
         });
+        setLoading(false);
+      } catch (err) {
+        setError('Failed to load car details');
+        setLoading(false);
+        console.error('Error fetching car details:', err);
       }
-    }
-  }, [cars, id]);
+    };
+
+    fetchCarDetails();
+  }, [id]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -76,10 +83,10 @@ const EditCar = () => {
         mileage: parseInt(formData.mileage),
       };
       await CarService.updateCar(id, carData);
-      updateCars();
-      navigate(`/cars/${id}`);
+      navigate(`/car/${id}`);
     } catch (error) {
       console.error('Error updating car:', error);
+      setError('Failed to update car details');
     }
   };
 
@@ -270,7 +277,7 @@ const EditCar = () => {
                 <Button
                   variant="outlined"
                   color="primary"
-                  onClick={() => navigate(`/cars/${id}`)}
+                  onClick={() => navigate(`/car/${id}`)}
                 >
                   Cancel
                 </Button>

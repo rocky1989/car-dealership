@@ -35,13 +35,13 @@ const Login = ({ onLogin }) => {
 
     try {
       const response = await axios.post('http://localhost:8080/api/auth/signin', formData);
-      const { token } = response.data;
+      const { accessToken } = response.data;
       
       // Store the token in localStorage
-      localStorage.setItem('authToken', token);
+      localStorage.setItem('authToken', accessToken);
       
       // Set default Authorization header for future requests
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
       
       // Call the onLogin callback
       onLogin();

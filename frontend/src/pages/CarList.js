@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Container,
@@ -13,46 +13,60 @@ import {
     CircularProgress,
     Alert
 } from '@mui/material';
-import { useCarContext } from '../context/CarContext';
 import CarService from '../services/CarService';
 
 const CarList = () => {
-    const { cars, loading, error, updateCars } = useCarContext();
+    const [cars, setCars] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const navigate = useNavigate();
 
-    // Memoized filtered cars
-    const filteredCars = useMemo(() => {
-        if (!searchQuery) return cars;
-        return cars.filter(car => 
-            car.make.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            car.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            car.manufacturedYear.toString().includes(searchQuery)
-        );
-    }, [cars, searchQuery]);
+    useEffect(() => {
+        const fetchCars = async () => {
+            try {
+                setLoading(true);
+                const data = await CarService.getAllCars();
+                setCars(data);
+            } catch (err) {
+                setError('Failed to fetch cars. Please try again later.');
+                console.error('Error fetching cars:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    const handleSearch = useCallback((event) => {
-        setSearchQuery(event.target.value);
+        fetchCars();
     }, []);
 
-    const handleViewDetails = useCallback((id) => {
-        navigate(`/cars/${id}`);
-    }, [navigate]);
+    const filteredCars = cars.filter(car => 
+        car.make.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        car.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        car.manufacturedYear.toString().includes(searchQuery)
+    );
 
-    const handleEdit = useCallback((id) => {
-        navigate(`/cars/${id}/edit`);
-    }, [navigate]);
+    const handleSearch = (event) => {
+        setSearchQuery(event.target.value);
+    };
 
-    const handleDelete = useCallback(async (id) => {
+    const handleViewDetails = (id) => {
+        navigate(`/car/${id}`);
+    };
+
+    const handleEdit = (id) => {
+        navigate(`/edit-car/${id}`);
+    };
+
+    const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this car?')) {
             try {
                 await CarService.deleteCar(id);
-                updateCars(); // Update the global state
+                setCars(cars.filter(car => car.id !== id));
             } catch (err) {
                 console.error('Error deleting car:', err);
             }
         }
-    }, [updateCars]);
+    };
 
     if (loading) {
         return (
