@@ -10,8 +10,20 @@ import {
   Paper,
   MenuItem,
   CircularProgress,
-  Alert
+  Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  FormHelperText,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  IconButton,
+  Card,
+  CardMedia,
 } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 import CarService from '../services/CarService';
 
 const EditCar = () => {
@@ -30,9 +42,12 @@ const EditCar = () => {
     carCondition: '',
     status: 'AVAILABLE',
     vin: '',
-    imageUrl: '',
   });
+  const [existingImages, setExistingImages] = useState([]);
+  const [newImages, setNewImages] = useState([]);
+  const [imagesToDelete, setImagesToDelete] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -52,8 +67,8 @@ const EditCar = () => {
           carCondition: car.carCondition || '',
           status: car.status || 'AVAILABLE',
           vin: car.vin || '',
-          imageUrl: car.imageUrl || '',
         });
+        setExistingImages(car.images || []);
         setLoading(false);
       } catch (err) {
         setError('Failed to load car details');
@@ -73,20 +88,43 @@ const EditCar = () => {
     }));
   };
 
+  const handleImageChange = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files);
+      setNewImages([...newImages, ...newFiles]);
+    }
+  };
+
+  const handleRemoveNewImage = (index) => {
+    const updatedImages = [...newImages];
+    updatedImages.splice(index, 1);
+    setNewImages(updatedImages);
+  };
+
+  const handleRemoveExistingImage = (imageId) => {
+    setImagesToDelete(prev => [...prev, imageId]);
+    setExistingImages(prev => prev.filter(img => img.id !== imageId));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
     try {
       const carData = {
         ...formData,
         manufacturedYear: parseInt(formData.manufacturedYear),
         price: parseFloat(formData.price),
         mileage: parseInt(formData.mileage),
+        images: existingImages.filter(img => !imagesToDelete.includes(img.id)),
       };
-      await CarService.updateCar(id, carData);
+      
+      await CarService.updateCar(id, carData, newImages);
       navigate(`/car/${id}`);
     } catch (error) {
       console.error('Error updating car:', error);
       setError('Failed to update car details');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -183,63 +221,64 @@ const EditCar = () => {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                required
-                fullWidth
-                select
-                label="Transmission"
-                name="transmission"
-                value={formData.transmission}
-                onChange={handleChange}
-              >
-                <MenuItem value="Automatic">Automatic</MenuItem>
-                <MenuItem value="Manual">Manual</MenuItem>
-              </TextField>
+              <FormControl fullWidth>
+                <InputLabel>Transmission</InputLabel>
+                <Select
+                  name="transmission"
+                  value={formData.transmission}
+                  onChange={handleChange}
+                  label="Transmission"
+                >
+                  <MenuItem value="AUTOMATIC">Automatic</MenuItem>
+                  <MenuItem value="MANUAL">Manual</MenuItem>
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                required
-                fullWidth
-                select
-                label="Fuel Type"
-                name="fuelType"
-                value={formData.fuelType}
-                onChange={handleChange}
-              >
-                <MenuItem value="Gasoline">Gasoline</MenuItem>
-                <MenuItem value="Diesel">Diesel</MenuItem>
-                <MenuItem value="Electric">Electric</MenuItem>
-                <MenuItem value="Hybrid">Hybrid</MenuItem>
-              </TextField>
+              <FormControl fullWidth>
+                <InputLabel>Fuel Type</InputLabel>
+                <Select
+                  name="fuelType"
+                  value={formData.fuelType}
+                  onChange={handleChange}
+                  label="Fuel Type"
+                >
+                  <MenuItem value="GASOLINE">Gasoline</MenuItem>
+                  <MenuItem value="DIESEL">Diesel</MenuItem>
+                  <MenuItem value="ELECTRIC">Electric</MenuItem>
+                  <MenuItem value="HYBRID">Hybrid</MenuItem>
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                required
-                fullWidth
-                select
-                label="Condition"
-                name="carCondition"
-                value={formData.carCondition}
-                onChange={handleChange}
-              >
-                <MenuItem value="New">New</MenuItem>
-                <MenuItem value="Used">Used</MenuItem>
-                <MenuItem value="Certified Pre-Owned">Certified Pre-Owned</MenuItem>
-              </TextField>
+              <FormControl fullWidth>
+                <InputLabel>Condition</InputLabel>
+                <Select
+                  name="carCondition"
+                  value={formData.carCondition}
+                  onChange={handleChange}
+                  label="Condition"
+                >
+                  <MenuItem value="NEW">New</MenuItem>
+                  <MenuItem value="USED">Used</MenuItem>
+                  <MenuItem value="CERTIFIED">Certified Pre-owned</MenuItem>
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                required
-                fullWidth
-                select
-                label="Status"
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-              >
-                <MenuItem value="AVAILABLE">Available</MenuItem>
-                <MenuItem value="SOLD">Sold</MenuItem>
-              </TextField>
+              <FormControl fullWidth>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                  label="Status"
+                >
+                  <MenuItem value="AVAILABLE">Available</MenuItem>
+                  <MenuItem value="SOLD">Sold</MenuItem>
+                  <MenuItem value="PENDING">Pending</MenuItem>
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
@@ -254,16 +293,6 @@ const EditCar = () => {
             <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Image URL"
-                name="imageUrl"
-                value={formData.imageUrl}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                required
-                fullWidth
                 multiline
                 rows={4}
                 label="Description"
@@ -272,6 +301,89 @@ const EditCar = () => {
                 onChange={handleChange}
               />
             </Grid>
+
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>
+                Existing Images
+              </Typography>
+              <Grid container spacing={2}>
+                {existingImages.map((image) => (
+                  <Grid item xs={12} sm={6} md={4} key={image.id}>
+                    <Card>
+                      <CardMedia
+                        component="img"
+                        height="200"
+                        image={image.imageUrl}
+                        alt={`Car Image ${image.id}`}
+                      />
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
+                        <IconButton
+                          color="error"
+                          onClick={() => handleRemoveExistingImage(image.id)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Box>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Grid>
+
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>
+                Add New Images
+              </Typography>
+              <Button
+                variant="contained"
+                component="label"
+                fullWidth
+              >
+                Upload Images
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageChange}
+                />
+              </Button>
+              {newImages.length > 0 && (
+                <>
+                  <List>
+                    {newImages.map((image, index) => (
+                      <ListItem key={index}>
+                        <ListItemText primary={image.name} />
+                        <ListItemSecondaryAction>
+                          <IconButton
+                            edge="end"
+                            aria-label="delete"
+                            onClick={() => handleRemoveNewImage(index)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                    ))}
+                  </List>
+                  <Grid container spacing={2} sx={{ mt: 2 }}>
+                    {newImages.map((image, index) => (
+                      <Grid item xs={12} sm={6} md={4} key={index}>
+                        <Card>
+                          <CardMedia
+                            component="img"
+                            height="200"
+                            image={URL.createObjectURL(image)}
+                            alt={`Preview ${index + 1}`}
+                          />
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </>
+              )}
+            </Grid>
+
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                 <Button
@@ -285,8 +397,10 @@ const EditCar = () => {
                   type="submit"
                   variant="contained"
                   color="primary"
+                  disabled={submitting}
+                  startIcon={submitting ? <CircularProgress size={20} /> : null}
                 >
-                  Save Changes
+                  {submitting ? 'Saving...' : 'Save Changes'}
                 </Button>
               </Box>
             </Grid>

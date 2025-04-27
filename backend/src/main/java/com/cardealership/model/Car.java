@@ -1,9 +1,15 @@
 package com.cardealership.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Entity
@@ -19,53 +25,55 @@ public class Car {
     @Column(nullable = false)
     private String model;
 
-    @Column(nullable = false)
+    @Column(name = "manufactured_year", nullable = false)
     private Integer manufacturedYear;
 
     @Column(nullable = false)
     private BigDecimal price;
 
-    @Column(nullable = false)
+    @Column
     private Integer mileage;
 
-    @Column(length = 1000)
-    private String description;
-
-    @Column(nullable = false)
+    @Column
     private String color;
 
-    @Column(nullable = false)
+    @Column
     private String transmission;
 
-    @Column(nullable = false)
+    @Column(name = "fuel_type")
     private String fuelType;
 
-    @Column(nullable = false)
+    @Column(name = "car_condition")
     private String carCondition;
 
-    @Column(nullable = false)
-    private String status; // Available, Sold, Reserved
+    @Column
+    private String status;
 
-    @Column(nullable = false)
+    @Column(unique = true)
     private String vin;
 
-    @Column
-    private String imageUrl;
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
-    @Column(nullable = false)
+    @OneToMany(mappedBy = "car", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
+    @JsonManagedReference
+    private List<CarImage> images = new ArrayList<>();
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
+    @UpdateTimestamp
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+    public void addImage(CarImage image) {
+        images.add(image);
+        image.setCar(this);
     }
 
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+    public void removeImage(CarImage image) {
+        images.remove(image);
+        image.setCar(null);
     }
 } 

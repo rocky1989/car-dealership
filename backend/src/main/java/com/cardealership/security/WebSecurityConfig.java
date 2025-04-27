@@ -61,7 +61,7 @@ public class WebSecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*"));
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
@@ -81,7 +81,10 @@ public class WebSecurityConfig {
             .authorizeHttpRequests(auth -> 
                 auth.requestMatchers("/h2-console/**").permitAll()
                     .requestMatchers("/api/auth/**").permitAll()
-                    .requestMatchers("/api/cars", "/api/cars/search", "/api/cars/{id}").permitAll()
+                    .requestMatchers("/api/cars").permitAll()
+                    .requestMatchers("/api/cars/search").permitAll()
+                    .requestMatchers("/api/cars/{id}").permitAll()
+                    .requestMatchers("/api/cars/status/**").permitAll()
                     .requestMatchers("/api/leads/**").permitAll()
                     .requestMatchers("/api/cars/**").authenticated()
                     .anyRequest().authenticated()

@@ -9,8 +9,16 @@ import {
     Button,
     Box,
     CircularProgress,
-    Alert
+    Alert,
+    Grid,
+    useTheme,
+    useMediaQuery,
+    Chip,
+    Paper,
+    IconButton
 } from '@mui/material';
+import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import CarService from '../services/CarService';
 
 const CarDetails = () => {
@@ -19,6 +27,9 @@ const CarDetails = () => {
     const [car, setCar] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     useEffect(() => {
         const fetchCarDetails = async () => {
@@ -36,6 +47,18 @@ const CarDetails = () => {
 
         fetchCarDetails();
     }, [id]);
+
+    const handlePreviousImage = () => {
+        setCurrentImageIndex((prevIndex) =>
+            prevIndex === 0 ? car.images.length - 1 : prevIndex - 1
+        );
+    };
+
+    const handleNextImage = () => {
+        setCurrentImageIndex((prevIndex) =>
+            prevIndex === car.images.length - 1 ? 0 : prevIndex + 1
+        );
+    };
 
     const handleDelete = async () => {
         if (window.confirm('Are you sure you want to delete this car?')) {
@@ -80,74 +103,163 @@ const CarDetails = () => {
     const isLoggedIn = localStorage.getItem('authToken') !== null;
 
     return (
-        <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-            <Card>
-                <CardMedia
-                    component="img"
-                    height="400"
-                    image={car.imageUrl || '/default-car.jpg'}
-                    alt={`${car.make} ${car.model}`}
-                />
-                <CardContent>
-                    <Typography gutterBottom variant="h4" component="div">
-                        {car.make} {car.model}
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary" paragraph>
-                        Year: {car.manufacturedYear}
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary" paragraph>
-                        Price: ${car.price.toLocaleString()}
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary" paragraph>
-                        Mileage: {car.mileage.toLocaleString()} miles
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary" paragraph>
-                        Color: {car.color}
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary" paragraph>
-                        Transmission: {car.transmission}
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary" paragraph>
-                        Fuel Type: {car.fuelType}
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary" paragraph>
-                        Condition: {car.carCondition}
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary" paragraph>
-                        VIN: {car.vin}
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary" paragraph>
-                        Status: {car.status}
-                    </Typography>
-                    <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                        {isLoggedIn && (
-                            <>
-                                <Button
-                                    variant="contained"
-                                    color="primary"
-                                    onClick={() => navigate(`/edit-car/${id}`)}
+        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+            <Paper elevation={3} sx={{ p: 4 }}>
+                <Grid container spacing={4}>
+                    <Grid item xs={12} md={6}>
+                        <Box sx={{ position: 'relative', width: '100%', height: '400px' }}>
+                            {car.images && car.images.length > 0 ? (
+                                <>
+                                    <Box
+                                        component="img"
+                                        src={car.images[currentImageIndex].imageUrl}
+                                        alt={`${car.make} ${car.model}`}
+                                        sx={{
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'cover',
+                                            borderRadius: 1,
+                                        }}
+                                    />
+                                    {car.images.length > 1 && (
+                                        <>
+                                            <IconButton
+                                                onClick={handlePreviousImage}
+                                                sx={{
+                                                    position: 'absolute',
+                                                    left: 0,
+                                                    top: '50%',
+                                                    transform: 'translateY(-50%)',
+                                                    bgcolor: 'rgba(255, 255, 255, 0.7)',
+                                                    '&:hover': {
+                                                        bgcolor: 'rgba(255, 255, 255, 0.9)',
+                                                    },
+                                                }}
+                                            >
+                                                <ArrowBackIosIcon />
+                                            </IconButton>
+                                            <IconButton
+                                                onClick={handleNextImage}
+                                                sx={{
+                                                    position: 'absolute',
+                                                    right: 0,
+                                                    top: '50%',
+                                                    transform: 'translateY(-50%)',
+                                                    bgcolor: 'rgba(255, 255, 255, 0.7)',
+                                                    '&:hover': {
+                                                        bgcolor: 'rgba(255, 255, 255, 0.9)',
+                                                    },
+                                                }}
+                                            >
+                                                <ArrowForwardIosIcon />
+                                            </IconButton>
+                                        </>
+                                    )}
+                                    <Box
+                                        sx={{
+                                            position: 'absolute',
+                                            bottom: 16,
+                                            left: '50%',
+                                            transform: 'translateX(-50%)',
+                                            display: 'flex',
+                                            gap: 1,
+                                        }}
+                                    >
+                                        {car.images.map((_, index) => (
+                                            <Box
+                                                key={index}
+                                                sx={{
+                                                    width: 8,
+                                                    height: 8,
+                                                    borderRadius: '50%',
+                                                    bgcolor: index === currentImageIndex ? 'primary.main' : 'grey.400',
+                                                    cursor: 'pointer',
+                                                }}
+                                                onClick={() => setCurrentImageIndex(index)}
+                                            />
+                                        ))}
+                                    </Box>
+                                </>
+                            ) : (
+                                <Box
+                                    sx={{
+                                        width: '100%',
+                                        height: '100%',
+                                        bgcolor: 'grey.200',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
                                 >
-                                    Edit
-                                </Button>
-                                <Button
-                                    variant="contained"
-                                    color="error"
-                                    onClick={handleDelete}
-                                >
-                                    Delete
-                                </Button>
-                            </>
-                        )}
-                        <Button
-                            variant="outlined"
-                            color="primary"
-                            onClick={() => navigate('/inventory')}
-                        >
-                            Back to List
-                        </Button>
-                    </Box>
-                </CardContent>
-            </Card>
+                                    <Typography color="text.secondary">No image available</Typography>
+                                </Box>
+                            )}
+                        </Box>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                        <Typography variant="h4" gutterBottom>
+                            {car.make} {car.model}
+                        </Typography>
+                        <Typography variant="h5" color="primary" gutterBottom>
+                            ${car.price.toLocaleString()}
+                        </Typography>
+                        <Chip
+                            label={car.status}
+                            color={car.status === 'AVAILABLE' ? 'success' : 'error'}
+                            sx={{ mb: 2 }}
+                        />
+                        <Grid container spacing={2} sx={{ mb: 3 }}>
+                            <Grid item xs={6}>
+                                <Typography variant="body2" color="text.secondary">
+                                    Year
+                                </Typography>
+                                <Typography variant="body1">{car.manufacturedYear}</Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                                <Typography variant="body2" color="text.secondary">
+                                    Mileage
+                                </Typography>
+                                <Typography variant="body1">
+                                    {car.mileage.toLocaleString()} miles
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                                <Typography variant="body2" color="text.secondary">
+                                    VIN
+                                </Typography>
+                                <Typography variant="body1">{car.vin}</Typography>
+                            </Grid>
+                        </Grid>
+                        <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
+                            {isLoggedIn && (
+                                <>
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        onClick={() => navigate(`/edit-car/${id}`)}
+                                    >
+                                        Edit Car
+                                    </Button>
+                                    <Button
+                                        variant="outlined"
+                                        color="error"
+                                        onClick={handleDelete}
+                                    >
+                                        Delete Car
+                                    </Button>
+                                </>
+                            )}
+                            <Button
+                                variant="outlined"
+                                color="primary"
+                                onClick={() => navigate('/inventory')}
+                            >
+                                Back to List
+                            </Button>
+                        </Box>
+                    </Grid>
+                </Grid>
+            </Paper>
         </Container>
     );
 };

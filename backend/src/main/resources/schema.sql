@@ -1,4 +1,5 @@
 -- Drop existing tables if they exist
+DROP TABLE IF EXISTS car_images;
 DROP TABLE IF EXISTS user_roles;
 DROP TABLE IF EXISTS roles;
 DROP TABLE IF EXISTS users;
@@ -37,17 +38,29 @@ CREATE TABLE cars (
     model VARCHAR(50) NOT NULL,
     manufactured_year INT NOT NULL,
     price DECIMAL(10,2) NOT NULL,
-    mileage INT NOT NULL,
+    mileage INT,
     description TEXT,
-    color VARCHAR(50),
-    transmission VARCHAR(20),
-    fuel_type VARCHAR(20),
-    car_condition VARCHAR(20),
-    status VARCHAR(20) DEFAULT 'AVAILABLE',
+    color VARCHAR(30),
+    transmission VARCHAR(30),
+    fuel_type VARCHAR(30),
+    car_condition VARCHAR(30),
+    status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE',
     vin VARCHAR(17) UNIQUE,
-    image_url VARCHAR(255),
     created_by BIGINT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users(id)
+);
+
+-- Create car_images table
+CREATE TABLE car_images (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    car_id BIGINT NOT NULL,
+    image_url VARCHAR(255) NOT NULL,
+    is_primary BOOLEAN DEFAULT FALSE,
+    display_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (car_id) REFERENCES cars(id) ON DELETE CASCADE,
+    CONSTRAINT uk_car_display_order UNIQUE (car_id, display_order)
 ); 

@@ -21,4 +21,7 @@ public interface CarRepository extends JpaRepository<Car, Long> {
     List<Car> findByMakeContainingIgnoreCaseAndModelContainingIgnoreCaseAndManufacturedYearAndPriceBetween(
         String make, String model, Integer year, BigDecimal minPrice, BigDecimal maxPrice
     );
+
+    List<Car> findByMakeContainingAndModelContainingAndManufacturedYearBetweenAndPriceBetween(
+            String make, String model, Integer minYear, Integer maxYear, Double minPrice, Double maxPrice);
 } 

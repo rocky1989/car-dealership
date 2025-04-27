@@ -1,12 +1,19 @@
 import axios from 'axios';
 
 const API_URL = 'http://localhost:8080/api/cars';
+const IMAGE_BASE_URL = 'http://localhost:8080/uploads';
 
 const CarService = {
     getAllCars: async () => {
         try {
             const response = await axios.get(API_URL);
-            return response.data;
+            return response.data.map(car => ({
+                ...car,
+                images: car.images?.map(image => ({
+                    ...image,
+                    imageUrl: image.imageFilename ? `${IMAGE_BASE_URL}/${image.imageFilename}` : null
+                })) || []
+            }));
         } catch (error) {
             console.error('Error fetching cars:', error);
             throw error;
@@ -16,9 +23,16 @@ const CarService = {
     getCarById: async (id) => {
         try {
             const response = await axios.get(`${API_URL}/${id}`);
-            return response.data;
+            const car = response.data;
+            return {
+                ...car,
+                images: car.images?.map(image => ({
+                    ...image,
+                    imageUrl: image.imageFilename ? `${IMAGE_BASE_URL}/${image.imageFilename}` : null
+                })) || []
+            };
         } catch (error) {
-            console.error('Error fetching car details:', error);
+            console.error('Error fetching car:', error);
             throw error;
         }
     },
@@ -33,19 +47,41 @@ const CarService = {
         }
     },
 
-    createCar: async (carData) => {
+    addCar: async (carData, imageFiles) => {
         try {
-            const response = await axios.post(API_URL, carData);
+            const formData = new FormData();
+            formData.append('car', JSON.stringify(carData));
+            if (imageFiles && imageFiles.length > 0) {
+                imageFiles.forEach((file, index) => {
+                    formData.append('images', file);
+                });
+            }
+            const response = await axios.post(API_URL, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
             return response.data;
         } catch (error) {
-            console.error('Error creating car:', error);
+            console.error('Error adding car:', error);
             throw error;
         }
     },
 
-    updateCar: async (id, carData) => {
+    updateCar: async (id, carData, imageFiles) => {
         try {
-            const response = await axios.put(`${API_URL}/${id}`, carData);
+            const formData = new FormData();
+            formData.append('car', JSON.stringify(carData));
+            if (imageFiles && imageFiles.length > 0) {
+                imageFiles.forEach((file, index) => {
+                    formData.append('images', file);
+                });
+            }
+            const response = await axios.put(`${API_URL}/${id}`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
             return response.data;
         } catch (error) {
             console.error('Error updating car:', error);

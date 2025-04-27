@@ -21,6 +21,7 @@ const Home = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const [featuredCars, setFeaturedCars] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -29,7 +30,6 @@ const Home = () => {
     const fetchFeaturedCars = async () => {
       try {
         const response = await axios.get('http://localhost:8080/api/cars');
-        // Get the first 3 available cars as featured
         const availableCars = response.data.filter(car => car.status === 'AVAILABLE').slice(0, 3);
         setFeaturedCars(availableCars);
         setLoading(false);
@@ -72,11 +72,12 @@ const Home = () => {
           backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(https://images.unsplash.com/photo-1503376780353-7e6692767b70?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=2070&q=80)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          height: '80vh',
+          height: { xs: '60vh', sm: '70vh', md: '80vh' },
           display: 'flex',
           alignItems: 'center',
           textAlign: 'center',
           color: 'white',
+          px: { xs: 2, sm: 4 },
         }}
       >
         <Container maxWidth="md">
@@ -88,15 +89,25 @@ const Home = () => {
           >
             Welcome to Sai Motors
           </Typography>
-          <Typography variant={isMobile ? 'h6' : 'h5'} paragraph sx={{ mb: 4 }}>
+          <Typography 
+            variant={isMobile ? 'h6' : 'h5'} 
+            paragraph 
+            sx={{ mb: 4 }}
+          >
             Your trusted destination for quality pre-owned vehicles
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 2, 
+            justifyContent: 'center',
+            flexDirection: isMobile ? 'column' : 'row'
+          }}>
             <Button
               variant="contained"
               size="large"
               onClick={() => navigate('/inventory')}
               sx={{ px: 4, py: 1.5 }}
+              fullWidth={isMobile}
             >
               Browse Inventory
             </Button>
@@ -104,7 +115,17 @@ const Home = () => {
               variant="outlined"
               size="large"
               onClick={() => navigate('/sell-car')}
-              sx={{ px: 4, py: 1.5, color: 'white', borderColor: 'white' }}
+              sx={{ 
+                px: 4, 
+                py: 1.5, 
+                color: 'white', 
+                borderColor: 'white',
+                '&:hover': {
+                  borderColor: 'white',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                }
+              }}
+              fullWidth={isMobile}
             >
               Sell Your Car
             </Button>
@@ -173,7 +194,16 @@ const Home = () => {
             <Grid container spacing={4}>
               {featuredCars.map((car) => (
                 <Grid item key={car.id} xs={12} sm={6} md={4}>
-                  <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <Card sx={{ 
+                    height: '100%', 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    transition: 'transform 0.2s',
+                    '&:hover': {
+                      transform: 'scale(1.02)',
+                      boxShadow: 6
+                    }
+                  }}>
                     <CardMedia
                       component="img"
                       height="200"
@@ -182,7 +212,7 @@ const Home = () => {
                       sx={{ objectFit: 'cover' }}
                     />
                     <CardContent sx={{ flexGrow: 1 }}>
-                      <Typography gutterBottom variant="h5" component="h2">
+                      <Typography gutterBottom variant="h5" component="div">
                         {car.make} {car.model}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
@@ -192,18 +222,19 @@ const Home = () => {
                         Mileage: {car.mileage.toLocaleString()} miles
                       </Typography>
                       <Typography variant="h6" color="primary" sx={{ mt: 1 }}>
-                        ₹{car.price.toLocaleString()}
+                        ${car.price.toLocaleString()}
                       </Typography>
                       <Chip
                         label={car.status}
                         color={car.status === 'AVAILABLE' ? 'success' : 'error'}
-                        sx={{ mb: 1 }}
+                        size="small"
+                        sx={{ mt: 1 }}
                       />
                       <Button
                         variant="contained"
-                        onClick={() => navigate(`/car/${car.id}`)}
-                        sx={{ mt: 2 }}
                         fullWidth
+                        sx={{ mt: 2 }}
+                        onClick={() => navigate(`/car/${car.id}`)}
                       >
                         View Details
                       </Button>
@@ -224,9 +255,21 @@ const Home = () => {
         <Grid container spacing={4}>
           {testimonials.map((testimonial, index) => (
             <Grid item key={index} xs={12} md={4}>
-              <Paper sx={{ p: 3, height: '100%' }}>
+              <Paper 
+                sx={{ 
+                  p: 3, 
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  transition: 'transform 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-5px)',
+                    boxShadow: 6
+                  }
+                }}
+              >
                 <Rating value={testimonial.rating} readOnly sx={{ mb: 2 }} />
-                <Typography variant="body1" paragraph>
+                <Typography variant="body1" paragraph sx={{ flexGrow: 1 }}>
                   "{testimonial.text}"
                 </Typography>
                 <Typography variant="subtitle1" fontWeight="bold">
@@ -242,20 +285,47 @@ const Home = () => {
       </Container>
 
       {/* Call to Action Section */}
-      <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 8 }}>
+      <Box 
+        sx={{ 
+          bgcolor: 'primary.main', 
+          color: 'white',
+          py: 8,
+          px: { xs: 2, sm: 4 }
+        }}
+      >
         <Container maxWidth="md">
-          <Typography variant="h4" align="center" gutterBottom>
+          <Typography 
+            variant={isMobile ? 'h5' : 'h4'} 
+            align="center" 
+            gutterBottom
+          >
             Ready to Find Your Next Car?
           </Typography>
-          <Typography variant="h6" align="center" paragraph sx={{ mb: 4 }}>
+          <Typography 
+            variant={isMobile ? 'body1' : 'h6'} 
+            align="center" 
+            paragraph 
+            sx={{ mb: 4 }}
+          >
             Browse our inventory or contact us today to schedule a test drive.
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 2, 
+            justifyContent: 'center',
+            flexDirection: isMobile ? 'column' : 'row'
+          }}>
             <Button
               variant="contained"
               size="large"
               onClick={() => navigate('/inventory')}
-              sx={{ bgcolor: 'white', color: 'primary.main', '&:hover': { bgcolor: 'grey.100' } }}
+              sx={{ 
+                bgcolor: 'white', 
+                color: 'primary.main', 
+                '&:hover': { bgcolor: 'grey.100' },
+                px: 4
+              }}
+              fullWidth={isMobile}
             >
               View Inventory
             </Button>
@@ -263,7 +333,16 @@ const Home = () => {
               variant="outlined"
               size="large"
               onClick={() => navigate('/contact')}
-              sx={{ color: 'white', borderColor: 'white' }}
+              sx={{ 
+                color: 'white', 
+                borderColor: 'white',
+                '&:hover': {
+                  borderColor: 'white',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                },
+                px: 4
+              }}
+              fullWidth={isMobile}
             >
               Contact Us
             </Button>
