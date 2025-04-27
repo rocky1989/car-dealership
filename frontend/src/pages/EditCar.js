@@ -15,13 +15,9 @@ import {
   InputLabel,
   Select,
   FormHelperText,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  IconButton,
   Card,
   CardMedia,
+  IconButton,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CarService from '../services/CarService';
@@ -29,46 +25,17 @@ import CarService from '../services/CarService';
 const EditCar = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    make: '',
-    model: '',
-    manufacturedYear: '',
-    price: '',
-    mileage: '',
-    description: '',
-    color: '',
-    transmission: '',
-    fuelType: '',
-    carCondition: '',
-    status: 'AVAILABLE',
-    vin: '',
-  });
-  const [existingImages, setExistingImages] = useState([]);
-  const [newImages, setNewImages] = useState([]);
-  const [imagesToDelete, setImagesToDelete] = useState([]);
+  const [car, setCar] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [deletedImages, setDeletedImages] = useState([]);
 
   useEffect(() => {
     const fetchCarDetails = async () => {
       try {
         const car = await CarService.getCarById(id);
-        setFormData({
-          make: car.make,
-          model: car.model,
-          manufacturedYear: car.manufacturedYear.toString(),
-          price: car.price.toString(),
-          mileage: car.mileage.toString(),
-          description: car.description || '',
-          color: car.color || '',
-          transmission: car.transmission || '',
-          fuelType: car.fuelType || '',
-          carCondition: car.carCondition || '',
-          status: car.status || 'AVAILABLE',
-          vin: car.vin || '',
-        });
-        setExistingImages(car.images || []);
+        setCar(car);
         setLoading(false);
       } catch (err) {
         setError('Failed to load car details');
@@ -82,50 +49,84 @@ const EditCar = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setCar((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  const handleImageChange = (e) => {
+  const handleImageUpload = async (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      const newFiles = Array.from(e.target.files);
-      setNewImages([...newImages, ...newFiles]);
+      try {
+        const newFiles = Array.from(e.target.files);
+        
+        // Update backend with the new files
+        const updatedCar = await CarService.updateCarImages(id, newFiles);
+        
+        // Update UI with the updated car images
+        setCar(prev => ({
+          ...prev,
+          images: updatedCar.images
+        }));
+      } catch (error) {
+        console.error('Error updating images:', error);
+        setError('Failed to update images');
+      }
     }
   };
 
-  const handleRemoveNewImage = (index) => {
-    const updatedImages = [...newImages];
-    updatedImages.splice(index, 1);
-    setNewImages(updatedImages);
-  };
-
-  const handleRemoveExistingImage = (imageId) => {
-    setImagesToDelete(prev => [...prev, imageId]);
-    setExistingImages(prev => prev.filter(img => img.id !== imageId));
+  const handleDeleteImage = (index) => {
+    if (car && car.images) {
+      const imageToDelete = car.images[index];
+      setDeletedImages(prev => [...prev, imageToDelete]);
+      setCar(prev => ({
+        ...prev,
+        images: prev.images.filter((_, i) => i !== index)
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+    setError(null);
+
     try {
+      // Filter out File objects from images array
       const carData = {
-        ...formData,
-        manufacturedYear: parseInt(formData.manufacturedYear),
-        price: parseFloat(formData.price),
-        mileage: parseInt(formData.mileage),
-        images: existingImages.filter(img => !imagesToDelete.includes(img.id)),
+        ...car,
+        manufacturedYear: parseInt(car.manufacturedYear),
+        price: parseFloat(car.price),
+        mileage: parseFloat(car.mileage),
+        images: car.images.filter(img => !(img instanceof File))
       };
+
+      // Update car details
+      const updatedCar = await CarService.updateCar(id, carData);
       
-      await CarService.updateCar(id, carData, newImages);
+      // If there are deleted images, update the car again to remove them
+      if (deletedImages.length > 0) {
+        const finalCar = await CarService.getCarById(id);
+        const updatedImages = finalCar.images.filter(img => 
+          !deletedImages.some(deleted => deleted.id === img.id)
+        );
+        await CarService.updateCar(id, { ...finalCar, images: updatedImages });
+      }
+
       navigate(`/car/${id}`);
-    } catch (error) {
-      console.error('Error updating car:', error);
-      setError('Failed to update car details');
+    } catch (err) {
+      console.error('Error updating car:', err);
+      setError('Failed to update car. Please try again.');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const getImageUrl = (image) => {
+    if (image instanceof File) {
+      return URL.createObjectURL(image);
+    }
+    return image.image_data || image.imageUrl;
   };
 
   if (loading) {
@@ -160,7 +161,7 @@ const EditCar = () => {
                 fullWidth
                 label="Make"
                 name="make"
-                value={formData.make}
+                value={car.make}
                 onChange={handleChange}
               />
             </Grid>
@@ -170,7 +171,7 @@ const EditCar = () => {
                 fullWidth
                 label="Model"
                 name="model"
-                value={formData.model}
+                value={car.model}
                 onChange={handleChange}
               />
             </Grid>
@@ -181,7 +182,7 @@ const EditCar = () => {
                 label="Year"
                 name="manufacturedYear"
                 type="number"
-                value={formData.manufacturedYear}
+                value={car.manufacturedYear}
                 onChange={handleChange}
                 inputProps={{ min: 1900, max: new Date().getFullYear() }}
               />
@@ -193,7 +194,7 @@ const EditCar = () => {
                 label="Price (₹)"
                 name="price"
                 type="number"
-                value={formData.price}
+                value={car.price}
                 onChange={handleChange}
                 inputProps={{ min: 0, step: 0.01 }}
               />
@@ -205,7 +206,7 @@ const EditCar = () => {
                 label="Mileage"
                 name="mileage"
                 type="number"
-                value={formData.mileage}
+                value={car.mileage}
                 onChange={handleChange}
                 inputProps={{ min: 0 }}
               />
@@ -216,7 +217,7 @@ const EditCar = () => {
                 fullWidth
                 label="Color"
                 name="color"
-                value={formData.color}
+                value={car.color}
                 onChange={handleChange}
               />
             </Grid>
@@ -225,7 +226,7 @@ const EditCar = () => {
                 <InputLabel>Transmission</InputLabel>
                 <Select
                   name="transmission"
-                  value={formData.transmission}
+                  value={car.transmission}
                   onChange={handleChange}
                   label="Transmission"
                 >
@@ -239,7 +240,7 @@ const EditCar = () => {
                 <InputLabel>Fuel Type</InputLabel>
                 <Select
                   name="fuelType"
-                  value={formData.fuelType}
+                  value={car.fuelType}
                   onChange={handleChange}
                   label="Fuel Type"
                 >
@@ -255,7 +256,7 @@ const EditCar = () => {
                 <InputLabel>Condition</InputLabel>
                 <Select
                   name="carCondition"
-                  value={formData.carCondition}
+                  value={car.carCondition}
                   onChange={handleChange}
                   label="Condition"
                 >
@@ -270,7 +271,7 @@ const EditCar = () => {
                 <InputLabel>Status</InputLabel>
                 <Select
                   name="status"
-                  value={formData.status}
+                  value={car.status}
                   onChange={handleChange}
                   label="Status"
                 >
@@ -286,7 +287,7 @@ const EditCar = () => {
                 fullWidth
                 label="VIN"
                 name="vin"
-                value={formData.vin}
+                value={car.vin}
                 onChange={handleChange}
               />
             </Grid>
@@ -297,29 +298,29 @@ const EditCar = () => {
                 rows={4}
                 label="Description"
                 name="description"
-                value={formData.description}
+                value={car.description}
                 onChange={handleChange}
               />
             </Grid>
 
             <Grid item xs={12}>
               <Typography variant="h6" gutterBottom>
-                Existing Images
+                Car Images
               </Typography>
               <Grid container spacing={2}>
-                {existingImages.map((image) => (
-                  <Grid item xs={12} sm={6} md={4} key={image.id}>
+                {car.images.map((image, index) => (
+                  <Grid item xs={12} sm={6} md={4} key={index}>
                     <Card>
                       <CardMedia
                         component="img"
                         height="200"
-                        image={image.imageUrl}
-                        alt={`Car Image ${image.id}`}
+                        image={getImageUrl(image)}
+                        alt={`Car Image ${index + 1}`}
                       />
                       <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
                         <IconButton
                           color="error"
-                          onClick={() => handleRemoveExistingImage(image.id)}
+                          onClick={() => handleDeleteImage(index)}
                         >
                           <DeleteIcon />
                         </IconButton>
@@ -328,16 +329,11 @@ const EditCar = () => {
                   </Grid>
                 ))}
               </Grid>
-            </Grid>
-
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>
-                Add New Images
-              </Typography>
               <Button
                 variant="contained"
                 component="label"
                 fullWidth
+                sx={{ mt: 2 }}
               >
                 Upload Images
                 <input
@@ -345,43 +341,9 @@ const EditCar = () => {
                   hidden
                   accept="image/*"
                   multiple
-                  onChange={handleImageChange}
+                  onChange={handleImageUpload}
                 />
               </Button>
-              {newImages.length > 0 && (
-                <>
-                  <List>
-                    {newImages.map((image, index) => (
-                      <ListItem key={index}>
-                        <ListItemText primary={image.name} />
-                        <ListItemSecondaryAction>
-                          <IconButton
-                            edge="end"
-                            aria-label="delete"
-                            onClick={() => handleRemoveNewImage(index)}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </ListItemSecondaryAction>
-                      </ListItem>
-                    ))}
-                  </List>
-                  <Grid container spacing={2} sx={{ mt: 2 }}>
-                    {newImages.map((image, index) => (
-                      <Grid item xs={12} sm={6} md={4} key={index}>
-                        <Card>
-                          <CardMedia
-                            component="img"
-                            height="200"
-                            image={URL.createObjectURL(image)}
-                            alt={`Preview ${index + 1}`}
-                          />
-                        </Card>
-                      </Grid>
-                    ))}
-                  </Grid>
-                </>
-              )}
             </Grid>
 
             <Grid item xs={12}>

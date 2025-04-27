@@ -98,7 +98,10 @@ public class CarServiceImpl implements CarService {
         // Delete all associated images
         for (CarImage image : car.getImages()) {
             try {
-                fileStorageService.deleteFile(image.getImageUrl());
+                // Only try to delete local files, skip external URLs
+                if (!image.getImageUrl().startsWith("http")) {
+                    fileStorageService.deleteFile(image.getImageUrl());
+                }
             } catch (IOException e) {
                 logger.error("Error deleting image file: {}", e.getMessage());
             }
@@ -127,5 +130,32 @@ public class CarServiceImpl implements CarService {
     public List<Car> getCarsByStatus(String status) {
         logger.debug("Getting cars by status: {}", status);
         return carRepository.findByStatus(status);
+    }
+
+    @Override
+    @Transactional
+    public Car updateCarImages(Long id, List<MultipartFile> images) {
+        logger.debug("Updating car images for car ID: {} with {} images", id, images != null ? images.size() : 0);
+        
+        Car car = carRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Car not found with id: " + id));
+        
+        // Handle new images
+        if (images != null && !images.isEmpty()) {
+            for (MultipartFile image : images) {
+                try {
+                    String filename = fileStorageService.storeFile(image);
+                    CarImage carImage = new CarImage();
+                    carImage.setImageUrl(filename);
+                    carImage.setCar(car);
+                    car.getImages().add(carImage);
+                } catch (IOException e) {
+                    logger.error("Error saving image: {}", e.getMessage());
+                    throw new RuntimeException("Failed to save image: " + e.getMessage());
+                }
+            }
+        }
+        
+        return carRepository.save(car);
     }
 } 

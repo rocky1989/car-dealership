@@ -6,6 +6,7 @@ import com.cardealership.service.CarService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -50,7 +51,7 @@ public class CarController {
         return ResponseEntity.ok(savedCar);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<Car> updateCar(
             @PathVariable Long id,
             @RequestPart("car") Car car,
@@ -97,5 +98,20 @@ public class CarController {
     public ResponseEntity<List<Car>> getCarsByStatus(@PathVariable String status) {
         logger.debug("GET /api/cars/status/{} - Getting cars by status", status);
         return ResponseEntity.ok(carService.getCarsByStatus(status));
+    }
+
+    @PutMapping(value = "/{id}/images", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    public ResponseEntity<Car> updateCarImages(
+            @PathVariable Long id,
+            @RequestParam("images") List<MultipartFile> images) {
+        logger.debug("PUT /api/cars/{}/images - Updating car images", id);
+        try {
+            Car updatedCar = carService.updateCarImages(id, images);
+            logger.debug("Car images updated successfully for car ID: {}", id);
+            return ResponseEntity.ok(updatedCar);
+        } catch (RuntimeException e) {
+            logger.error("Error updating car images: {}", e.getMessage());
+            return ResponseEntity.notFound().build();
+        }
     }
 } 

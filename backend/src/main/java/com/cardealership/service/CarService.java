@@ -29,4 +29,7 @@ public interface CarService {
 
     @CacheEvict(value = "cars", key = "#car.id")
     Car updateCar(Car car, List<MultipartFile> newImages);
+
+    @CacheEvict(value = "cars", key = "#id")
+    Car updateCarImages(Long id, List<MultipartFile> images);
 } 
